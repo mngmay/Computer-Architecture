@@ -2,6 +2,11 @@
 
 import sys
 
+# op codes
+HLT = 0b00000001
+LDI = 0b10000010
+PRN = 0b01000111
+
 
 class CPU:
     """Main CPU class."""
@@ -65,9 +70,25 @@ class CPU:
     def ram_read(self, MAR):
         return self.ram[MAR]
 
-    def ram_write(self, MDR, MAR):
+    def ram_write(self, MAR, MDR):
         self.ram[MAR] = MDR
 
     def run(self):
         """Run the CPU."""
-        pass
+        running = True
+
+        while running:
+            IR = self.ram_read(self.pc)
+            operand_a = self.ram_read(self.pc + 1)
+            operand_b = self.ram_read(self.pc + 2)
+            if IR == LDI:
+                self.reg[operand_a] = operand_b
+                self.pc += 3
+            elif IR == PRN:
+                print(f'{self.reg[operand_a]}')
+                self.pc += 2
+            elif IR == HLT:
+                running = False
+            else:
+                print("Unknown instruction:", IR)
+                sys.exit(1)
