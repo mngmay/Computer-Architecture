@@ -19,24 +19,47 @@ class CPU:
 
     def load(self):
         """Load a program into memory."""
+        # For Day 1 MVP
+        # address = 0
+        # # For now, we've just hardcoded a program:
 
-        address = 0
+        # program = [
+        #     # From print8.ls8
+        #     0b10000010,  # LDI R0,8
+        #     0b00000000,
+        #     0b00001000,
+        #     0b01000111,  # PRN R0
+        #     0b00000000,
+        #     0b00000001,  # HLT
+        # ]
 
-        # For now, we've just hardcoded a program:
+        # for instruction in program:
+        #     self.ram[address] = instruction
+        #     address += 1
 
-        program = [
-            # From print8.ls8
-            0b10000010,  # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111,  # PRN R0
-            0b00000000,
-            0b00000001,  # HLT
-        ]
+        try:
+            address = 0
 
-        for instruction in program:
-            self.ram[address] = instruction
-            address += 1
+            program = sys.argv[1]
+
+            with open(program) as f:
+                for line in f:
+                    line = line.split("#")[0]
+                    line = line.strip()  # lose whitespace
+
+                    if line == "":
+                        continue
+                    val = int(line, 2)  # converts to base 2
+                    self.ram[address] = val
+                    address += 1
+
+        except FileNotFoundError:
+            print(f"{sys.argv[0]}: {program} not found")
+            sys.exit(2)
+
+        if len(sys.argv) != 2:
+            print("Usage: file.py filename", file=sys.stderr)
+            sys.exit(1)
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
