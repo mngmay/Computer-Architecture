@@ -6,6 +6,7 @@ import sys
 HLT = 0b00000001
 LDI = 0b10000010
 PRN = 0b01000111
+MUL = 0b10100010
 
 
 class CPU:
@@ -101,6 +102,7 @@ class CPU:
         running = True
 
         while running:
+            # print(self.trace())
             IR = self.ram_read(self.pc)
             operand_a = self.ram_read(self.pc + 1)
             operand_b = self.ram_read(self.pc + 2)
@@ -110,6 +112,9 @@ class CPU:
             elif IR == PRN:
                 print(f'{self.reg[operand_a]}')
                 self.pc += 2
+            elif IR == MUL:
+                self.reg[operand_a] = self.reg[operand_a] * self.reg[operand_b]
+                self.pc += 3
             elif IR == HLT:
                 running = False
             else:
