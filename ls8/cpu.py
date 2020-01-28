@@ -6,6 +6,8 @@ import sys
 HLT = 0b00000001
 LDI = 0b10000010
 PRN = 0b01000111
+
+# ALU
 MUL = 0b10100010
 
 
@@ -17,27 +19,11 @@ class CPU:
         self.ram = [0] * 256
         self.reg = [0] * 8
         self.pc = 0
+        self.branchtable = {LDI: self.handle_ldi,
+                            PRN: self.handle_prn, MUL: self.handle_mul}
 
     def load(self):
         """Load a program into memory."""
-        # For Day 1 MVP
-        # address = 0
-        # # For now, we've just hardcoded a program:
-
-        # program = [
-        #     # From print8.ls8
-        #     0b10000010,  # LDI R0,8
-        #     0b00000000,
-        #     0b00001000,
-        #     0b01000111,  # PRN R0
-        #     0b00000000,
-        #     0b00000001,  # HLT
-        # ]
-
-        # for instruction in program:
-        #     self.ram[address] = instruction
-        #     address += 1
-
         try:
             address = 0
 
@@ -97,6 +83,18 @@ class CPU:
     def ram_write(self, MAR, MDR):
         self.ram[MAR] = MDR
 
+    def handle_ldi(self, a, b):
+        self.reg[a] = b
+        self.pc += 3
+
+    def handle_prn(self, a, b):
+        print(f'{self.reg[a]}')
+        self.pc += 2
+
+    def handle_mul(self, a, b):
+        self.reg[a] *= self.reg[b]
+        self.pc += 3
+
     def run(self):
         """Run the CPU."""
         running = True
@@ -106,17 +104,14 @@ class CPU:
             IR = self.ram_read(self.pc)
             operand_a = self.ram_read(self.pc + 1)
             operand_b = self.ram_read(self.pc + 2)
-            if IR == LDI:
-                self.reg[operand_a] = operand_b
-                self.pc += 3
-            elif IR == PRN:
-                print(f'{self.reg[operand_a]}')
-                self.pc += 2
-            elif IR == MUL:
-                self.reg[operand_a] = self.reg[operand_a] * self.reg[operand_b]
-                self.pc += 3
+
+            if IR in self.branchtable:
+                self.branchtable[IR](operand_a, operand_b)
+
             elif IR == HLT:
+                print("HALTED")
                 running = False
+
             else:
                 print("Unknown instruction:", IR)
                 sys.exit(1)
