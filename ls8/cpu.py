@@ -10,6 +10,10 @@ PRN = 0b01000111
 # ALU
 MUL = 0b10100010
 
+# For stack
+PUSH = 0b01000101
+POP = 0b01000110
+
 
 class CPU:
     """Main CPU class."""
@@ -20,7 +24,12 @@ class CPU:
         self.reg = [0] * 8
         self.pc = 0
         self.branchtable = {LDI: self.handle_ldi,
-                            PRN: self.handle_prn, MUL: self.handle_mul}
+                            PRN: self.handle_prn,
+                            MUL: self.handle_mul,
+                            PUSH: self.handle_push,
+                            POP: self.handle_pop}
+        self.SP = 7
+        self.reg[self.SP] = 0xf4  # initialize SP to empty stack
 
     def load(self):
         """Load a program into memory."""
@@ -94,6 +103,24 @@ class CPU:
     def handle_mul(self, a, b):
         self.reg[a] *= self.reg[b]
         self.pc += 3
+
+    def handle_push(self, a, b):
+        self.reg[self.SP] -= 1  # decrement SP
+        reg_num = self.ram[self.pc + 1]
+        reg_val = self.reg[reg_num]
+        # copy reg value into memory at address SP
+        self.ram[self.reg[self.SP]] = reg_val
+
+        self.pc += 2
+
+    def handle_pop(self, a, b):
+        val = self.ram[self.reg[self.SP]]
+        reg_num = self.ram[self.pc + 1]
+        self.reg[reg_num] = val  # copy val from memory at SP into register
+
+        self.reg[self.SP] += 1  # increment SP
+
+        self.pc += 2
 
     def run(self):
         """Run the CPU."""
