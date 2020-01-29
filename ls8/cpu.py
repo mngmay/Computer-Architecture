@@ -14,6 +14,9 @@ MUL = 0b10100010
 PUSH = 0b01000101
 POP = 0b01000110
 
+CALL = 0b01010000
+RET = 0b00010001
+
 
 class CPU:
     """Main CPU class."""
@@ -27,7 +30,9 @@ class CPU:
                             PRN: self.handle_prn,
                             MUL: self.handle_mul,
                             PUSH: self.handle_push,
-                            POP: self.handle_pop}
+                            POP: self.handle_pop,
+                            CALL: self.handle_call,
+                            RET: self.handle_ret}
         self.SP = 7
         self.reg[self.SP] = 0xf4  # initialize SP to empty stack
 
@@ -94,15 +99,12 @@ class CPU:
 
     def handle_ldi(self, a, b):
         self.reg[a] = b
-        self.pc += 3
 
     def handle_prn(self, a, b):
         print(f'{self.reg[a]}')
-        self.pc += 2
 
     def handle_mul(self, a, b):
         self.reg[a] *= self.reg[b]
-        self.pc += 3
 
     def handle_push(self, a, b):
         self.reg[self.SP] -= 1  # decrement SP
@@ -111,8 +113,6 @@ class CPU:
         # copy reg value into memory at address SP
         self.ram[self.reg[self.SP]] = reg_val
 
-        self.pc += 2
-
     def handle_pop(self, a, b):
         val = self.ram[self.reg[self.SP]]
         reg_num = self.ram[self.pc + 1]
@@ -120,7 +120,11 @@ class CPU:
 
         self.reg[self.SP] += 1  # increment SP
 
-        self.pc += 2
+    def handle_call(self, a, b):
+        pass
+
+    def handle_ret(self, a, b):
+        pass
 
     def run(self):
         """Run the CPU."""
@@ -134,6 +138,8 @@ class CPU:
 
             if IR in self.branchtable:
                 self.branchtable[IR](operand_a, operand_b)
+                ops = IR >> 6
+                self.pc += ops + 1
 
             elif IR == HLT:
                 print("HALTED")
