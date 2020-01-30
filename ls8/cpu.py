@@ -29,8 +29,8 @@ class CPU:
         self.ram = [0] * 256
         self.reg = [0] * 8
         self.pc = 0
-        self.branchtable = {LDI: self.handle_ldi,
-                            PRN: self.handle_prn,
+        self.branchtable = {LDI: lambda a, b: self.handle_ldi(a, b),
+                            PRN: lambda a, _: self.handle_prn(a),
                             ADD: lambda a, b: self.alu('ADD', a, b),
                             SUB: lambda a, b: self.alu('SUB', a, b),
                             MUL: lambda a, b: self.alu('MUL', a, b),
@@ -118,11 +118,11 @@ class CPU:
     def ram_write(self, MAR, MDR):
         self.ram[MAR] = MDR
 
-    def handle_ldi(self, a, b):
-        self.reg[a] = b
+    def handle_ldi(self, reg_a, reg_b):
+        self.reg[reg_a] = reg_b
 
-    def handle_prn(self, a, b):
-        print(f'{self.reg[a]}')
+    def handle_prn(self, reg_address):
+        print(f'{self.reg[reg_address]}')
 
     def handle_push(self, reg_address):
         self.reg[self.SP] -= 1  # decrement SP
