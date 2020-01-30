@@ -8,12 +8,15 @@ LDI = 0b10000010
 PRN = 0b01000111
 
 # ALU
+ADD = 0b10100000
+SUB = 0b10100001
 MUL = 0b10100010
 
 # For stack
 PUSH = 0b01000101
 POP = 0b01000110
 
+# Subroutine
 CALL = 0b01010000
 RET = 0b00010001
 
@@ -28,11 +31,13 @@ class CPU:
         self.pc = 0
         self.branchtable = {LDI: self.handle_ldi,
                             PRN: self.handle_prn,
-                            MUL: self.handle_mul,
-                            PUSH: self.handle_push,
-                            POP: self.handle_pop,
-                            CALL: self.handle_call,
-                            RET: self.handle_ret}
+                            ADD: lambda a, b: self.alu('ADD', a, b),
+                            SUB: lambda a, b: self.alu('SUB', a, b),
+                            MUL: lambda a, b: self.alu('MUL', a, b),
+                            PUSH: lambda a, _: self.handle_push(a),
+                            POP: lambda a, _: self.handle_pop(a),
+                            CALL: lambda a, _: self.handle_call(a),
+                            RET: lambda *_args: self.handle_ret()}
         self.SP = 7
         self.reg[self.SP] = 0xf4  # initialize SP to empty stack
 
@@ -65,10 +70,26 @@ class CPU:
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
 
-        if op == "ADD":
+        def handle_add(reg_a, reg_b):
             self.reg[reg_a] += self.reg[reg_b]
-        # elif op == "SUB": etc
-        else:
+
+        def handle_sub(reg_a, reg_b):
+            self.reg[reg_a] -= self.reg[reg_b]
+
+        def handle_mul(reg_a, reg_b):
+            self.reg[reg_a] *= self.reg[reg_b]
+
+        alu_math_ops = {
+            "ADD": handle_add,
+            "SUB": handle_sub,
+            "MUL": handle_mul
+        }
+
+        try:
+            if op in alu_math_ops:
+                alu_math_ops[op](reg_a, reg_b)
+
+        except:
             raise Exception("Unsupported ALU operation")
 
     def trace(self):
@@ -103,28 +124,28 @@ class CPU:
     def handle_prn(self, a, b):
         print(f'{self.reg[a]}')
 
-    def handle_mul(self, a, b):
-        self.reg[a] *= self.reg[b]
-
-    def handle_push(self, a, b):
+    def handle_push(self, reg_address):
         self.reg[self.SP] -= 1  # decrement SP
-        reg_num = self.ram[self.pc + 1]
-        reg_val = self.reg[reg_num]
         # copy reg value into memory at address SP
-        self.ram[self.reg[self.SP]] = reg_val
+        self.ram[self.reg[self.SP]] = self.reg[reg_address]
 
-    def handle_pop(self, a, b):
-        val = self.ram[self.reg[self.SP]]
-        reg_num = self.ram[self.pc + 1]
-        self.reg[reg_num] = val  # copy val from memory at SP into register
-
+    def handle_pop(self, reg_address):
+        # copy val from memory at SP into register
+        self.reg[reg_address] = self.ram_read(self.reg[self.SP])
         self.reg[self.SP] += 1  # increment SP
 
-    def handle_call(self, a, b):
-        pass
+    def handle_call(self, reg_address):
+        self.reg[self.SP] -= 1  # decrement SP
+        # store return address on stack
+        self.ram_write(self.reg[self.SP], self.pc + 2)
+        # set the pc to the value in the register
+        self.pc = self.reg[reg_address]
 
-    def handle_ret(self, a, b):
-        pass
+    def handle_ret(self):
+        # pop the return address off the stack
+        # store it in the pc
+        self.pc = self.ram_read(self.reg[self.SP])
+        self.reg[self.SP] += 1
 
     def run(self):
         """Run the CPU."""
@@ -139,10 +160,12 @@ class CPU:
             if IR in self.branchtable:
                 self.branchtable[IR](operand_a, operand_b)
                 ops = IR >> 6
-                self.pc += ops + 1
+                # determines if we need to auto advance instruction
+                set_directly = (IR & 0b10000) >> 4  # mask
+                if not set_directly:
+                    self.pc += ops + 1
 
             elif IR == HLT:
-                print("HALTED")
                 running = False
 
             else:
