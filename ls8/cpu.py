@@ -11,6 +11,8 @@ PRN = 0b01000111
 ADD = 0b10100000
 SUB = 0b10100001
 MUL = 0b10100010
+# Sprint Challenge
+CMP = 0b10100111
 
 # For stack
 PUSH = 0b01000101
@@ -31,11 +33,15 @@ class CPU:
         self.pc = 0
         self.branchtable = {LDI: lambda a, b: self.handle_ldi(a, b),
                             PRN: lambda a, _: self.handle_prn(a),
+                            # ALU
                             ADD: lambda a, b: self.alu('ADD', a, b),
                             SUB: lambda a, b: self.alu('SUB', a, b),
                             MUL: lambda a, b: self.alu('MUL', a, b),
+                            CMP: lambda a, b: self.alu('CMP', a, b),
+                            # Stack
                             PUSH: lambda a, _: self.handle_push(a),
                             POP: lambda a, _: self.handle_pop(a),
+                            # Subroutine
                             CALL: lambda a, _: self.handle_call(a),
                             RET: lambda *_args: self.handle_ret()}
         self.SP = 7
@@ -79,10 +85,24 @@ class CPU:
         def handle_mul(reg_a, reg_b):
             self.reg[reg_a] *= self.reg[reg_b]
 
+        def handle_cmp(reg_a, reg_b):
+            # FL bits 00000LGE
+            # if a and b are equal, set Equal E flag to 1, otherwise 0
+            # if a < b set Less than L flag to 1, otherwise 0
+            # if a > b set greater than G flag to 1, otherwise 0
+            self.FL = 0b00000000
+            if self.reg[reg_a] == self.reg[reg_b]:
+                self.FL = 0b00000001
+            elif self.reg[reg_a] < self.reg[reg_b]:
+                self.FL = 0b00000100
+            elif self.reg[reg_a] > self.reg[reg_b]:
+                self.FL = 0b00000010
+
         alu_math_ops = {
             "ADD": handle_add,
             "SUB": handle_sub,
-            "MUL": handle_mul
+            "MUL": handle_mul,
+            "CMP": handle_cmp,
         }
 
         try:
