@@ -11,6 +11,14 @@ PRN = 0b01000111
 ADD = 0b10100000
 SUB = 0b10100001
 MUL = 0b10100010
+# Stretch ALU
+AND = 0b10100000
+OR = 0b10101010
+XOR = 0b10101011
+NOT = 0b01101001
+SHL = 0b10101100
+SHR = 0b10101101
+MOD = 0b10100100
 
 # For stack
 PUSH = 0b01000101
@@ -35,6 +43,8 @@ class CPU:
         self.ram = [0] * 256
         self.reg = [0] * 8
         self.pc = 0
+        self.SP = 7
+        self.reg[self.SP] = 0xf4  # initialize SP to empty stack
         self.FL = 0
         self.branchtable = {LDI: lambda a, b: self.handle_ldi(a, b),
                             PRN: lambda a, _: self.handle_prn(a),
@@ -52,9 +62,15 @@ class CPU:
                             CMP: lambda a, b: self.alu('CMP', a, b),
                             JMP: lambda a, _: self.handle_jmp(a),
                             JEQ: lambda a, _: self.handle_jeq(a),
-                            JNE: lambda a, _: self.handle_jne(a)}
-        self.SP = 7
-        self.reg[self.SP] = 0xf4  # initialize SP to empty stack
+                            JNE: lambda a, _: self.handle_jne(a),
+                            # Stretch ALU
+                            AND: lambda a, b: self.alu("AND", a, b),
+                            OR: lambda a, b: self.alu("OR", a, b),
+                            XOR: lambda a, b: self.alu("XOR", a, b),
+                            NOT: lambda a, b: self.alu("NOT", a, b),
+                            SHL: lambda a, b: self.alu("SHL", a, b),
+                            SHR: lambda a, b: self.alu("SHR", a, b),
+                            MOD: lambda a, b: self.alu("MOD", a, b)}
 
     def load(self):
         """Load a program into memory."""
@@ -107,16 +123,54 @@ class CPU:
             elif self.reg[reg_a] > self.reg[reg_b]:
                 self.FL = 0b00000010
 
+        def handle_mod(reg_a, reg_b):
+            if self.reg[reg_b] == 0:
+                print("Error, second register is 0")
+                self.ram_write(self.ram[self.pc], HLT)
+            else:
+                self.reg[reg_a] %= self.reg[reg_b]
+
+        # Bitwise Ops
+        def handle_and(reg_a, reg_b):
+            self.reg[reg_a] = reg_a & reg_b
+
+        def handle_or(reg_a, reg_b):
+            self.reg[reg_a] = reg_a | reg_b
+
+        def handle_xor(reg_a, reg_b):
+            self.reg[reg_a] = reg_a ^ reg_b
+
+        def handle_not(reg_a, _):
+            self.reg[reg_a] = ~reg_a
+
+        def handle_shl(reg_a, reg_b):
+            self.reg[reg_a] = self.reg[reg_a] << self.reg[reg_b]
+
+        def handle_shr(reg_a, reg_b):
+            self.reg[reg_a] = self.reg[reg_a] >> self.reg[reg_b]
+
         alu_math_ops = {
             "ADD": handle_add,
             "SUB": handle_sub,
             "MUL": handle_mul,
             "CMP": handle_cmp,
+            "MOD": handle_mod
+        }
+
+        alu_bitwise_ops = {
+            "AND": handle_and,
+            "OR": handle_or,
+            "XOR": handle_xor,
+            "NOT": handle_not,
+            "SHL": handle_shl,
+            "SHR": handle_shr,
         }
 
         try:
             if op in alu_math_ops:
                 alu_math_ops[op](reg_a, reg_b)
+            if op in alu_bitwise_ops:
+                alu_bitwise_ops[op](reg_a, reg_b)
 
         except:
             raise Exception("Unsupported ALU operation")
@@ -129,7 +183,7 @@ class CPU:
 
         print(f"TRACE: %02X | %02X %02X %02X |" % (
             self.pc,
-            # self.fl,
+            self.FL,
             # self.ie,
             self.ram_read(self.pc),
             self.ram_read(self.pc + 1),
