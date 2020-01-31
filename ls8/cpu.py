@@ -132,16 +132,16 @@ class CPU:
 
         # Bitwise Ops
         def handle_and(reg_a, reg_b):
-            self.reg[reg_a] = reg_a & reg_b
+            self.reg[reg_a] = self.reg[reg_a] & self.reg[reg_b]
 
         def handle_or(reg_a, reg_b):
-            self.reg[reg_a] = reg_a | reg_b
+            self.reg[reg_a] = self.reg[reg_a] | self.reg[reg_b]
 
         def handle_xor(reg_a, reg_b):
-            self.reg[reg_a] = reg_a ^ reg_b
+            self.reg[reg_a] = self.reg[reg_a] ^ self.reg[reg_b]
 
         def handle_not(reg_a, _):
-            self.reg[reg_a] = ~reg_a
+            self.reg[reg_a] = ~self.reg[reg_a]
 
         def handle_shl(reg_a, reg_b):
             self.reg[reg_a] = self.reg[reg_a] << self.reg[reg_b]
