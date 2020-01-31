@@ -11,8 +11,6 @@ PRN = 0b01000111
 ADD = 0b10100000
 SUB = 0b10100001
 MUL = 0b10100010
-# Sprint Challenge
-CMP = 0b10100111
 
 # For stack
 PUSH = 0b01000101
@@ -21,6 +19,12 @@ POP = 0b01000110
 # Subroutine
 CALL = 0b01010000
 RET = 0b00010001
+
+# Sprint Challenge
+CMP = 0b10100111
+JMP = 0b01010100
+JEQ = 0b01010101
+JNE = 0b01010110
 
 
 class CPU:
@@ -31,19 +35,24 @@ class CPU:
         self.ram = [0] * 256
         self.reg = [0] * 8
         self.pc = 0
+        self.FL = 0
         self.branchtable = {LDI: lambda a, b: self.handle_ldi(a, b),
                             PRN: lambda a, _: self.handle_prn(a),
                             # ALU
                             ADD: lambda a, b: self.alu('ADD', a, b),
                             SUB: lambda a, b: self.alu('SUB', a, b),
                             MUL: lambda a, b: self.alu('MUL', a, b),
-                            CMP: lambda a, b: self.alu('CMP', a, b),
                             # Stack
                             PUSH: lambda a, _: self.handle_push(a),
                             POP: lambda a, _: self.handle_pop(a),
                             # Subroutine
                             CALL: lambda a, _: self.handle_call(a),
-                            RET: lambda *_args: self.handle_ret()}
+                            RET: lambda *_args: self.handle_ret(),
+                            # Sprint
+                            CMP: lambda a, b: self.alu('CMP', a, b),
+                            JMP: lambda a, _: self.handle_jmp(a),
+                            JEQ: lambda a, _: self.handle_jeq(a),
+                            JNE: lambda a, _: self.handle_jne(a)}
         self.SP = 7
         self.reg[self.SP] = 0xf4  # initialize SP to empty stack
 
@@ -166,6 +175,25 @@ class CPU:
         # store it in the pc
         self.pc = self.ram_read(self.reg[self.SP])
         self.reg[self.SP] += 1
+
+    def handle_jmp(self, reg_address):
+        # Jump to the address stored in the given register.
+        # Set the PC to the address stored in the given register
+        self.pc = self.reg[reg_address]
+
+    def handle_jeq(self, reg_address):
+        flag_equal = self.FL & 0b1
+        if flag_equal:
+            self.handle_jmp(reg_address)
+        else:
+            self.pc += 2
+
+    def handle_jne(self, reg_address):
+        flag_equal = self.FL & 0b1
+        if not flag_equal:
+            self.handle_jmp(reg_address)
+        else:
+            self.pc += 2
 
     def run(self):
         """Run the CPU."""
